@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스쿨플랜 AI - 운영계획서 자동 생성기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .generated-content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #E5E7EB;
+        }
+        .generated-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .generated-content p {
+            margin-bottom: 1rem;
+            line-height: 1.75;
+        }
+        .generated-content ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .generated-content li {
+            margin-bottom: 0.5rem;
+        }
+        .generated-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .generated-content th, .generated-content td {
+            border: 1px solid #D1D5DB;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .generated-content th {
+            background-color: #F9FAFB;
+            font-weight: 600;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #7A9D54;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- Chosen Palette: Professional & Calm -->
+    <!-- Application Structure Plan: A two-column layout for a task-oriented user experience. The left column serves as a control panel for user inputs (school level, plan type, keywords) and the generation trigger. The right column is the output viewer, initially showing a welcome message and then displaying the AI-generated content. This clear separation between controls and content makes the application intuitive and easy to use. A loading state provides crucial feedback during the API call. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: User Inputs -> Goal: Collect Data -> Viz/Presentation: Standard HTML form elements (<select>, <input>, <button>) styled with Tailwind. -> Interaction: User selects options and types keywords. -> Justification: The most direct and universally understood method for data input. -> Library/Method: HTML/Tailwind.
+        - Report Info: AI Generation Process -> Goal: Provide Feedback -> Viz/Presentation: A CSS spinner and a disabled button state. -> Interaction: User waits for the process to complete. -> Justification: Visually communicates that the system is working, preventing user confusion. -> Library/Method: Vanilla JS, CSS.
+        - Report Info: Generated Plan -> Goal: Display Structured Text -> Viz/Presentation: A content area where HTML, parsed from the AI's Markdown-like response, is rendered. -> Interaction: User reads and can copy the content. -> Justification: Presents the complex, structured information in a clean, readable, document-like format, which is the core purpose of the app. -> Library/Method: Vanilla JS for parsing and DOM manipulation.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <div id="app" class="flex flex-col min-h-screen">
+        <header class="bg-white shadow-md w-full">
+            <div class="container mx-auto px-6 py-4">
+                <h1 class="text-2xl font-bold text-[#7A9D54]">📝 스쿨플랜 AI</h1>
+                <p class="text-sm text-gray-500">학교 운영계획서 초안 생성기</p>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto p-6 flex flex-col lg:flex-row gap-6">
+            
+            <aside class="w-full lg:w-1/3 bg-white p-6 rounded-lg shadow-lg h-fit lg:sticky top-6">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">1. 계획서 조건 입력</h2>
+                <form id="plan-form" class="space-y-4">
+                    <div>
+                        <label for="school-level" class="block text-sm font-medium text-gray-700">학교급</label>
+                        <select id="school-level" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            <option>초등학교</option>
+                            <option>중학교</option>
+                            <option>고등학교</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="plan-type" class="block text-sm font-medium text-gray-700">계획서 종류</label>
+                        <select id="plan-type" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            <option>학교폭력 예방 교육 계획</option>
+                            <option>진로 체험 활동 계획</option>
+                            <option>디지털 리터러시 교육 계획</option>
+                            <option>기초학력 향상 지원 계획</option>
+                            <option>다문화 교육 활동 계획</option>
+                            <option>체육대회 운영 계획</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="keywords" class="block text-sm font-medium text-gray-700">핵심 키워드 (선택)</label>
+                        <input type="text" id="keywords" placeholder="예: 메타버스, AI 융합, 학생 주도" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                    </div>
+                    <button type="submit" id="generate-btn" class="w-full bg-[#7A9D54] text-white font-bold py-3 px-4 rounded-lg hover:bg-[#6a8a4a] transition-colors flex items-center justify-center">
+                        <span>AI 운영계획서 생성</span>
+                    </button>
+                </form>
+            </aside>
+
+            <section id="output-panel" class="w-full lg:w-2/3 bg-white p-8 rounded-lg shadow-lg">
+                <div id="initial-message">
+                    <h2 class="text-2xl font-bold text-gray-800">AI 운영계획서 초안이 이곳에 표시됩니다.</h2>
+                    <p class="mt-4 text-gray-600">왼쪽 패널에서 계획서의 조건을 선택하고 '생성' 버튼을 눌러주세요. AI가 선생님을 위한 맞춤형 운영계획서 초안을 작성해 드립니다.</p>
+                    <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-800 rounded-r-lg">
+                        <p><strong class="font-bold">예시:</strong> '초등학교'의 '디지털 리터러시 교육 계획'을 선택하고, 키워드로 '코딩 교육, 미디어 리터러시'를 입력해 보세요.</p>
+                    </div>
+                </div>
+                <div id="loading-indicator" class="hidden flex-col items-center justify-center text-center">
+                    <div class="loader"></div>
+                    <p class="mt-4 text-lg font-semibold text-gray-700">AI가 열심히 계획서를 작성하고 있습니다...</p>
+                    <p class="text-sm text-gray-500">잠시만 기다려 주세요. 최대 1분 정도 소요될 수 있습니다.</p>
+                </div>
+                <div id="generated-content-wrapper" class="hidden">
+                    <div class="flex justify-between items-center border-b pb-2 mb-4">
+                         <h2 id="plan-title" class="text-2xl font-bold"></h2>
+                         <button id="copy-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">본문 복사</button>
+                    </div>
+                    <div id="generated-content" class="generated-content"></div>
+                    <div class="mt-8 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded-r-lg">
+                        <p><strong>주의:</strong> 본 내용은 AI에 의해 생성된 초안으로, 실제 활용 시에는 반드시 학교의 실정과 규정에 맞게 검토 및 수정이 필요합니다.</p>
+                    </div>
+                </div>
+                 <div id="error-message" class="hidden text-center">
+                    <h2 class="text-2xl font-bold text-red-600">오류가 발생했습니다</h2>
+                    <p class="mt-4 text-gray-600">계획서 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.</p>
+                    <p class="mt-2 text-sm text-gray-500" id="error-details"></p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('plan-form');
+            const generateBtn = document.getElementById('generate-btn');
+            const initialMessage = document.getElementById('initial-message');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const generatedContentWrapper = document.getElementById('generated-content-wrapper');
+            const generatedContentDiv = document.getElementById('generated-content');
+            const planTitle = document.getElementById('plan-title');
+            const errorMessageDiv = document.getElementById('error-message');
+            const errorDetails = document.getElementById('error-details');
+            const copyBtn = document.getElementById('copy-btn');
+            const outputPanel = document.getElementById('output-panel');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const schoolLevel = document.getElementById('school-level').value;
+                const planType = document.getElementById('plan-type').value;
+                const keywords = document.getElementById('keywords').value;
+
+                // UI state update
+                initialMessage.classList.add('hidden');
+                generatedContentWrapper.classList.add('hidden');
+                errorMessageDiv.classList.add('hidden');
+                loadingIndicator.style.display = 'flex';
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span class="ml-2">생성 중...</span>`;
+
+                try {
+                    const prompt = `
+                        당신은 대한민국의 유능한 교사입니다. 다음 조건에 맞춰 '${schoolLevel} ${planType}' 초안을 작성해 주세요.
+
+                        **작성 조건:**
+                        - **핵심 키워드:** ${keywords || '지정되지 않음'} (이 키워드를 내용에 자연스럽게 반영해주세요.)
+                        - **대상:** ${schoolLevel} 학생
+                        - **기간:** 2025학년도 (1년)
+
+                        **출력 형식 (반드시 이 형식을 준수해주세요):**
+                        - 전체 계획서의 제목은 "TITLE: [여기에 제목 작성]" 형식으로 맨 첫 줄에 작성해주세요.
+                        - 각 섹션은 "### 섹션 제목" 형식으로 시작해주세요.
+                        - 세부 추진 계획은 반드시 테이블 형식으로 작성해주세요. 테이블 헤더는 "월", "주요 활동 내용", "세부 내용" 입니다. 테이블 내용은 파이프(|)로 구분해주세요.
+                        - 내용은 한국어로, 전문적이고 구체적인 교육 용어를 사용하여 작성해주세요.
+
+                        **필수 포함 섹션:**
+                        1.  ### Ⅰ. 목적 및 필요성
+                        2.  ### Ⅱ. 세부 추진 계획
+                        3.  ### Ⅲ. 예산 활용 계획
+                        4.  ### Ⅳ. 기대 효과
+                    `;
+
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "AIzaSyCmzUO0uhLy34fwtYEO23RGQ_0dqCgveDU" 
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const rawText = result.candidates[0].content.parts[0].text;
+                        displayContent(rawText);
+                        outputPanel.scrollIntoView({ behavior: 'smooth' });
+                    } else if (result.promptFeedback && result.promptFeedback.blockReason) {
+                         throw new Error(`콘텐츠 생성 중단: ${result.promptFeedback.blockReason}`);
+                    }
+                    else {
+                        throw new Error('AI로부터 유효한 응답을 받지 못했습니다.');
+                    }
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorMessageDiv.classList.remove('hidden');
+                    errorDetails.textContent = error.message;
+                } finally {
+                    // Restore UI
+                    loadingIndicator.style.display = 'none';
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = `<span>AI 운영계획서 생성</span>`;
+                }
+            });
+
+            function displayContent(rawText) {
+                const lines = rawText.split('\n');
+                let html = '';
+                let title = `${document.getElementById('school-level').value} ${document.getElementById('plan-type').value}`;
+                let inTable = false;
+
+                lines.forEach(line => {
+                    line = line.trim();
+                    if (line.startsWith('TITLE:')) {
+                        title = line.replace('TITLE:', '').trim();
+                        return;
+                    }
+                    if (line.startsWith('### ')) {
+                        if (inTable) {
+                            html += '</tbody></table>';
+                            inTable = false;
+                        }
+                        html += `<h2>${line.replace('### ', '')}</h2>`;
+                    } else if (line.startsWith('* ')) {
+                        html += `<ul><li>${line.replace('* ', '')}</li></ul>`;
+                    } else if (line.includes('|') && line.match(/\|/g).length > 1) {
+                         if (!inTable) {
+                            html += '<table><thead><tr>';
+                            const headers = line.split('|').map(h => h.trim()).filter(Boolean);
+                            headers.forEach(header => html += `<th>${header}</th>`);
+                            html += '</tr></thead><tbody>';
+                            inTable = true;
+                        } else if (!line.includes('---')) { // Skip markdown table header separator
+                            html += '<tr>';
+                            const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+                            cells.forEach(cell => html += `<td>${cell}</td>`);
+                            html += '</tr>';
+                        }
+                    } else if (line) {
+                        if (inTable) {
+                            html += '</tbody></table>';
+                            inTable = false;
+                        }
+                        html += `<p>${line}</p>`;
+                    }
+                });
+
+                if (inTable) {
+                    html += '</tbody></table>';
+                }
+
+                planTitle.textContent = title;
+                generatedContentDiv.innerHTML = html.replace(/<\/ul>\s*<ul>/g, ''); // Merge consecutive lists
+                generatedContentWrapper.classList.remove('hidden');
+            }
+
+            copyBtn.addEventListener('click', () => {
+                const contentToCopy = generatedContentDiv.innerText;
+                const textArea = document.createElement('textarea');
+                textArea.value = contentToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    copyBtn.textContent = '복사 완료!';
+                    setTimeout(() => { copyBtn.textContent = '본문 복사'; }, 2000);
+                } catch (err) {
+                    console.error('Copy failed', err);
+                    copyBtn.textContent = '복사 실패';
+                     setTimeout(() => { copyBtn.textContent = '본문 복사'; }, 2000);
+                }
+                document.body.removeChild(textArea);
+            });
+        });
+    </script>
+</body>
+</html>
