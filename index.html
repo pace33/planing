@@ -73,7 +73,7 @@
     <!-- Chosen Palette: Professional & Calm -->
     <!-- Application Structure Plan: A two-column layout for a task-oriented user experience. The left column serves as a control panel for user inputs (school level, plan type, keywords) and the generation trigger. The right column is the output viewer, initially showing a welcome message and then displaying the AI-generated content. This clear separation between controls and content makes the application intuitive and easy to use. A loading state provides crucial feedback during the API call. -->
     <!-- Visualization & Content Choices: 
-        - Report Info: User Inputs -> Goal: Collect Data -> Viz/Presentation: Standard HTML form elements (<select>, <input>, <button>) styled with Tailwind. -> Interaction: User selects options and types keywords. -> Justification: The most direct and universally understood method for data input. -> Library/Method: HTML/Tailwind.
+        - Report Info: User Inputs -> Goal: Collect Data -> Viz/Presentation: Standard HTML form elements (<select>, <input>, <button>) styled with Tailwind. A conditional text input appears for custom plan types. -> Interaction: User selects options and types keywords. The custom input visibility is toggled based on the dropdown selection. -> Justification: The most direct and universally understood method for data input, with added flexibility for custom entries. -> Library/Method: HTML/Tailwind, Vanilla JS.
         - Report Info: AI Generation Process -> Goal: Provide Feedback -> Viz/Presentation: A CSS spinner and a disabled button state. -> Interaction: User waits for the process to complete. -> Justification: Visually communicates that the system is working, preventing user confusion. -> Library/Method: Vanilla JS, CSS.
         - Report Info: Generated Plan -> Goal: Display Structured Text -> Viz/Presentation: A content area where HTML, parsed from the AI's Markdown-like response, is rendered. -> Interaction: User reads and can copy the content. -> Justification: Presents the complex, structured information in a clean, readable, document-like format, which is the core purpose of the app. -> Library/Method: Vanilla JS for parsing and DOM manipulation.
     -->
@@ -108,8 +108,13 @@
                             <option>디지털 리터러시 교육 계획</option>
                             <option>기초학력 향상 지원 계획</option>
                             <option>다문화 교육 활동 계획</option>
-                            <option>체육대회 운영 계획</option>
+                            <option value="custom">직접 입력</option>
                         </select>
+                    </div>
+                    <div id="custom-plan-type-wrapper" class="hidden">
+                        <label for="custom-plan-type" class="block text-sm font-medium text-gray-700">계획서 종류 직접 입력</label>
+                        <input type="text" id="custom-plan-type" placeholder="예: 가을 현장체험학습 계획" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                        <p id="custom-type-error" class="text-red-500 text-sm mt-1 hidden">계획서 종류를 입력해주세요.</p>
                     </div>
                     <div>
                         <label for="keywords" class="block text-sm font-medium text-gray-700">핵심 키워드 (선택)</label>
@@ -166,13 +171,39 @@
             const errorDetails = document.getElementById('error-details');
             const copyBtn = document.getElementById('copy-btn');
             const outputPanel = document.getElementById('output-panel');
+            
+            const planTypeSelect = document.getElementById('plan-type');
+            const customPlanTypeWrapper = document.getElementById('custom-plan-type-wrapper');
+            const customPlanTypeInput = document.getElementById('custom-plan-type');
+            const customTypeError = document.getElementById('custom-type-error');
+
+            planTypeSelect.addEventListener('change', () => {
+                if (planTypeSelect.value === 'custom') {
+                    customPlanTypeWrapper.classList.remove('hidden');
+                } else {
+                    customPlanTypeWrapper.classList.add('hidden');
+                }
+            });
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const schoolLevel = document.getElementById('school-level').value;
-                const planType = document.getElementById('plan-type').value;
+                let planType = planTypeSelect.value;
                 const keywords = document.getElementById('keywords').value;
+
+                customPlanTypeInput.classList.remove('border-red-500');
+                customTypeError.classList.add('hidden');
+
+                if (planType === 'custom') {
+                    planType = customPlanTypeInput.value.trim();
+                    if (!planType) {
+                        customPlanTypeInput.classList.add('border-red-500');
+                        customTypeError.classList.remove('hidden');
+                        customPlanTypeInput.focus();
+                        return;
+                    }
+                }
 
                 // UI state update
                 initialMessage.classList.add('hidden');
@@ -249,7 +280,7 @@
             function displayContent(rawText) {
                 const lines = rawText.split('\n');
                 let html = '';
-                let title = `${document.getElementById('school-level').value} ${document.getElementById('plan-type').value}`;
+                let title = `${document.getElementById('school-level').value} ${planTypeSelect.value === 'custom' ? customPlanTypeInput.value : planTypeSelect.value}`;
                 let inTable = false;
 
                 lines.forEach(line => {
